@@ -224,11 +224,21 @@ class _MyHomePageState extends State<MyHomePage> {
               prefixIcon: const Icon(Icons.search),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(10),
+                borderSide: BorderSide(color: Colors.grey[200]!),
               ),
               contentPadding: const EdgeInsets.symmetric(vertical: 0),
               filled: true,
-              fillColor: Colors.grey[100],
+              fillColor: Colors.transparent,
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: BorderSide(color: Colors.grey[200]!),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: BorderSide(color: Colors.grey[200]!),
+              ),
             ),
+
             onChanged: (value) {
               policyProvider.setSearchQuery(value);
             },
