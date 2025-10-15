@@ -1,3 +1,6 @@
+import 'dart:io';
+
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:postal_deposit/features/policy/domain/entities/policy_entity.dart';
 import 'package:postal_deposit/features/policy/domain/repositories/policy_repository.dart';
@@ -7,13 +10,25 @@ class PolicyProvider with ChangeNotifier {
   List<PolicyEntity> _policies = [];
   bool _isLoading = false;
   String? _error;
+  String? _agentName;
+  String? _agentId;
+  DateTime? _fromDate;
+  DateTime? _toDate;
+  String? _fileName;
+  bool _isImporting = false;
 
   PolicyProvider(this._repository);
 
   List<PolicyEntity> get policies => _policies;
   bool get isLoading => _isLoading;
+  bool get isImporting => _isImporting;
   String? get error => _error;
   bool get hasPolicies => _policies.isNotEmpty;
+  String? get agentName => _agentName;
+  String? get agentId => _agentId;
+  DateTime? get fromDate => _fromDate;
+  DateTime? get toDate => _toDate;
+  String? get fileName => _fileName;
 
   Future<void> loadPolicies() async {
     _isLoading = true;
@@ -54,10 +69,58 @@ class PolicyProvider with ChangeNotifier {
     try {
       await _repository.clearPolicies();
       _policies = [];
+      _agentName = null;
+      _agentId = null;
+      _fromDate = null;
+      _toDate = null;
+      _fileName = null;
     } catch (e) {
       _error = 'Failed to clear policies: $e';
     } finally {
       _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  /// Handles the file picking and import process
+  Future<bool> importPolicies() async {
+    try {
+      _isImporting = true;
+      _error = null;
+      notifyListeners();
+
+      // Pick a file
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['csv', 'xls', 'xlsx'],
+        allowMultiple: false,
+      );
+
+      if (result == null || result.files.isEmpty) {
+        // User canceled the picker
+        return false;
+      }
+
+      final file = File(result.files.single.path!);
+      _fileName = result.files.single.name;
+      notifyListeners();
+
+      // Parse the file
+      final resultData = await _repository.importPoliciesFromFile(file);
+
+      // Update the state
+      _policies = resultData.policies;
+      _agentName = resultData.agentName;
+      _agentId = resultData.agentId;
+      _fromDate = resultData.fromDate;
+      _toDate = resultData.toDate;
+
+      return true;
+    } catch (e) {
+      _error = 'Failed to import policies: $e';
+      return false;
+    } finally {
+      _isImporting = false;
       notifyListeners();
     }
   }

@@ -1,4 +1,7 @@
+import 'dart:io';
+
 import 'package:postal_deposit/core/storage/hive_service.dart';
+import 'package:postal_deposit/features/policy/data/datasources/policy_csv_parser.dart';
 import 'package:postal_deposit/features/policy/domain/entities/policy_entity.dart';
 import 'package:postal_deposit/features/policy/domain/repositories/policy_repository.dart';
 
@@ -30,6 +33,34 @@ class PolicyRepositoryImpl implements PolicyRepository {
       await HiveService.clearPolicies();
     } catch (e) {
       throw Exception('Failed to clear policies: $e');
+    }
+  }
+
+  @override
+  Future<({
+    List<PolicyEntity> policies,
+    String agentName,
+    String agentId,
+    DateTime fromDate,
+    DateTime toDate,
+  })> importPoliciesFromFile(File file) async {
+    try {
+      // Check if file exists
+      if (!await file.exists()) {
+        throw Exception('File does not exist');
+      }
+
+      // Parse the CSV file
+      final result = await PolicyCsvParser.parseCsv(file);
+      
+      // Save the parsed policies
+      if (result.policies.isNotEmpty) {
+        await savePolicies(result.policies);
+      }
+      
+      return result;
+    } catch (e) {
+      throw Exception('Failed to import policies from file: $e');
     }
   }
 }
