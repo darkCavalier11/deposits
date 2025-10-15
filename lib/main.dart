@@ -153,17 +153,9 @@ class _MyHomePageState extends State<MyHomePage> {
         actions: [
           if (policyProvider.hasPolicies)
             IconButton(
-              icon: const Icon(Icons.person_outline),
+              icon: const Icon(Icons.person_outline, size: 28),
               onPressed: () => _showPersonDetails(context, personProvider),
               tooltip: 'Agent Details',
-            ),
-          if (policyProvider.hasPolicies)
-            IconButton(
-              icon: const Icon(Icons.delete_outline),
-              onPressed: policyProvider.isLoading
-                  ? null
-                  : () => _showClearConfirmation(context),
-              tooltip: 'Clear All Policies',
             ),
         ],
       ),
@@ -423,77 +415,301 @@ class _MyHomePageState extends State<MyHomePage> {
   ) async {
     if (!personProvider.hasPerson) return;
 
+    final theme = Theme.of(context);
+    final person = personProvider.person!;
+    final colorScheme = theme.colorScheme;
+
+    // Format currency with Indian Rupee symbol
+    final currencyFormat = NumberFormat.currency(
+      locale: 'en_IN',
+      symbol: '₹',
+      decimalDigits: 2,
+    );
+
     await showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Agent Details'),
-        content: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ListTile(
-                leading: const Icon(Icons.person),
-                title: const Text('Name'),
-                subtitle: Text(personProvider.person!.agentName),
-              ),
-              const Divider(),
-              ListTile(
-                leading: const Icon(Icons.credit_card),
-                title: const Text('Agent ID'),
-                subtitle: Text(personProvider.person!.agentId),
-              ),
-              const Divider(),
-              ListTile(
-                leading: const Icon(Icons.date_range),
-                title: const Text('Active Period'),
-                subtitle: Text(
-                  '${_formatDate(personProvider.person!.issuedDateFrom)} - ${_formatDate(personProvider.person!.issuedDateTo)}',
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 500),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Header
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: colorScheme.primary,
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(16),
+                      topRight: Radius.circular(16),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.2),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.person_outline_rounded,
+                          color: Colors.white,
+                          size: 32,
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              person.agentName,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'ID: ${person.agentId}',
+                              style: TextStyle(
+                                color: Colors.white.withOpacity(0.9),
+                                fontSize: 14,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              const Divider(),
-              ListTile(
-                leading: const Icon(Icons.account_balance_wallet),
-                title: const Text('Total Sum Assured'),
-                trailing: Text(
-                  '₹${personProvider.person!.totalSumAssured.toStringAsFixed(2)}',
-                  style: const TextStyle(fontWeight: FontWeight.bold),
+
+                // Active Period Card
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Card(
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      side: BorderSide(color: Colors.grey.shade200, width: 1),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: colorScheme.primary.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Icon(
+                              Icons.calendar_today_rounded,
+                              color: colorScheme.primary,
+                              size: 20,
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Active Period',
+                                  style: TextStyle(
+                                    color: Colors.grey.shade600,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  '${_formatDate(person.issuedDateFrom)} - ${_formatDate(person.issuedDateTo)}',
+                                  style: const TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                 ),
-              ),
-              ListTile(
-                leading: const Icon(Icons.payments),
-                title: const Text('Total Premium'),
-                trailing: Text(
-                  '₹${personProvider.person!.totalPremiumAssured.toStringAsFixed(2)}',
-                  style: const TextStyle(fontWeight: FontWeight.bold),
+
+                // Stats Grid
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Column(
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: _buildStatCard(
+                          context,
+                          title: 'Sum Assured',
+                          value: currencyFormat.format(person.totalSumAssured),
+                          icon: Icons.account_balance_wallet_rounded,
+                          color: colorScheme.primary,
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: _buildStatCard(
+                          context,
+                          title: 'Total Premium',
+                          value: currencyFormat.format(
+                            person.totalPremiumAssured,
+                          ),
+                          icon: Icons.payments_rounded,
+                          color: Colors.green.shade600,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              ListTile(
-                leading: const Icon(Icons.description),
-                title: const Text('Total Policies'),
-                trailing: Text(
-                  '${personProvider.person!.policyCount}',
-                  style: const TextStyle(fontWeight: FontWeight.bold),
+
+                const SizedBox(height: 12),
+
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: _buildStatCard(
+                    context,
+                    title: 'Total Policies',
+                    value: '${person.policyCount}',
+                    icon: Icons.description_rounded,
+                    color: Colors.blue.shade600,
+                    isFullWidth: true,
+                  ),
                 ),
-              ),
-            ],
+
+                const SizedBox(height: 24),
+
+                // Buttons
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => Navigator.pop(context),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            side: BorderSide(color: Colors.grey.shade300),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          child: Text(
+                            'CLOSE',
+                            style: TextStyle(
+                              color: Colors.grey.shade800,
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: FilledButton(
+                          onPressed: () {
+                            Navigator.pop(context);
+                            _showEditPersonDialog(
+                              context,
+                              personProvider,
+                              person,
+                            );
+                          },
+                          style: FilledButton.styleFrom(
+                            backgroundColor: colorScheme.primary,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            elevation: 0,
+                          ),
+                          child: const Text(
+                            'EDIT DETAILS',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 8),
+              ],
+            ),
           ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
+      ),
+    );
+  }
+
+  Widget _buildStatCard(
+    BuildContext context, {
+    required String title,
+    required String value,
+    required IconData icon,
+    required Color color,
+    bool isFullWidth = false,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withOpacity(0.1)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(icon, size: 18, color: color),
+              ),
+              if (isFullWidth) const Spacer(),
+            ],
           ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              _showEditPersonDialog(
-                context,
-                personProvider,
-                personProvider.person!,
-              );
-            },
-            child: const Text('Edit'),
+          const SizedBox(height: 12),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            title.toUpperCase(),
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.grey.shade600,
+              letterSpacing: 0.5,
+            ),
           ),
         ],
       ),
