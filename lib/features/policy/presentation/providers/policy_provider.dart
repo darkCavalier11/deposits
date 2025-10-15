@@ -8,8 +8,10 @@ import 'package:postal_deposit/features/policy/domain/repositories/policy_reposi
 class PolicyProvider with ChangeNotifier {
   final PolicyRepository _repository;
   List<PolicyEntity> _policies = [];
+  List<PolicyEntity> _filteredPolicies = [];
   bool _isLoading = false;
   String? _error;
+  String _searchQuery = '';
   String? _agentName;
   String? _agentId;
   DateTime? _fromDate;
@@ -19,7 +21,7 @@ class PolicyProvider with ChangeNotifier {
 
   PolicyProvider(this._repository);
 
-  List<PolicyEntity> get policies => _policies;
+  List<PolicyEntity> get policies => _searchQuery.isEmpty ? _policies : _filteredPolicies;
   bool get isLoading => _isLoading;
   bool get isImporting => _isImporting;
   String? get error => _error;
@@ -29,6 +31,19 @@ class PolicyProvider with ChangeNotifier {
   DateTime? get fromDate => _fromDate;
   DateTime? get toDate => _toDate;
   String? get fileName => _fileName;
+  String get searchQuery => _searchQuery;
+
+  void setSearchQuery(String query) {
+    _searchQuery = query.toLowerCase();
+    if (_searchQuery.isEmpty) {
+      _filteredPolicies = [];
+    } else {
+      _filteredPolicies = _policies.where((policy) {
+        return policy.insured.toLowerCase().contains(_searchQuery);
+      }).toList();
+    }
+    notifyListeners();
+  }
 
   Future<void> loadPolicies() async {
     _isLoading = true;
@@ -37,6 +52,11 @@ class PolicyProvider with ChangeNotifier {
 
     try {
       _policies = await _repository.getPolicies();
+      if (_searchQuery.isNotEmpty) {
+        _filteredPolicies = _policies.where((policy) {
+          return policy.insured.toLowerCase().contains(_searchQuery);
+        }).toList();
+      }
     } catch (e) {
       _error = 'Failed to load policies: $e';
     } finally {

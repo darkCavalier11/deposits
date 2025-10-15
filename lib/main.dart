@@ -215,30 +215,60 @@ class _MyHomePageState extends State<MyHomePage> {
       children: [
         if (personProvider.hasPerson)
           _buildPersonSummary(context, personProvider),
+        // Search bar
+        Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: TextField(
+            decoration: InputDecoration(
+              hintText: 'Search by policy holder name...',
+              prefixIcon: const Icon(Icons.search),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+              contentPadding: const EdgeInsets.symmetric(vertical: 0),
+              filled: true,
+              fillColor: Colors.grey[100],
+            ),
+            onChanged: (value) {
+              policyProvider.setSearchQuery(value);
+            },
+          ),
+        ),
         Expanded(
           child: RefreshIndicator(
             onRefresh: () => policyProvider.loadPolicies(),
-            child: ListView.builder(
-              itemCount: policyProvider.policies.length,
-              itemBuilder: (context, index) {
-                final entry = policyProvider.policies[index];
-                return PolicyCard(
-                  entry: entry,
-                  onDelete: () async {
-                    final success = await context
-                        .read<PolicyProvider>()
-                        .deletePolicy(entry.policyNumber);
-                    if (success && context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Policy deleted successfully'),
-                        ),
+            child:
+                policyProvider.policies.isEmpty &&
+                    policyProvider.searchQuery.isNotEmpty
+                ? Center(
+                    child: Text(
+                      'No policies found for "${policyProvider.searchQuery}"',
+                      style: Theme.of(
+                        context,
+                      ).textTheme.bodyLarge?.copyWith(color: Colors.grey[600]),
+                    ),
+                  )
+                : ListView.builder(
+                    itemCount: policyProvider.policies.length,
+                    itemBuilder: (context, index) {
+                      final entry = policyProvider.policies[index];
+                      return PolicyCard(
+                        entry: entry,
+                        onDelete: () async {
+                          final success = await context
+                              .read<PolicyProvider>()
+                              .deletePolicy(entry.policyNumber);
+                          if (success && context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Policy deleted successfully'),
+                              ),
+                            );
+                          }
+                        },
                       );
-                    }
-                  },
-                );
-              },
-            ),
+                    },
+                  ),
           ),
         ),
       ],
