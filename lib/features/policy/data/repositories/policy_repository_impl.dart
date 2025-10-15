@@ -1,12 +1,16 @@
 import 'dart:io';
 
 import 'package:postal_deposit/core/storage/hive_service.dart';
+import 'package:postal_deposit/features/person/domain/entities/person_entity.dart';
+import 'package:postal_deposit/features/person/domain/repositories/person_repository.dart';
 import 'package:postal_deposit/features/policy/data/datasources/policy_csv_parser.dart';
 import 'package:postal_deposit/features/policy/domain/entities/policy_entity.dart';
 import 'package:postal_deposit/features/policy/domain/repositories/policy_repository.dart';
-import 'package:postal_deposit/features/policy/data/datasources/policy_csv_parser.dart';
 
 class PolicyRepositoryImpl implements PolicyRepository {
+  final PersonRepository _personRepository;
+
+  PolicyRepositoryImpl(this._personRepository);
   @override
   Future<List<PolicyEntity>> getPolicies() async {
     try {
@@ -54,9 +58,22 @@ class PolicyRepositoryImpl implements PolicyRepository {
       // Parse the CSV file
       final result = await PolicyCsvParser.parseCsv(file);
       
-      // Save the parsed policies
+      // Save the parsed policies and agent details
       if (result.policies.isNotEmpty) {
         await savePolicies(result.policies);
+        
+        // Save agent details
+        final person = PersonEntity(
+          agentName: result.agentName,
+          agentId: result.agentId,
+          issuedDateFrom: result.fromDate,
+          issuedDateTo: result.toDate,
+          totalSumAssured: result.policies.fold(0, (sum, policy) => sum + policy.sumAssured),
+          totalPremiumAssured: result.policies.fold(0, (sum, policy) => sum + policy.premiumAmt),
+          policyCount: result.policies.length,
+        );
+        
+        await _personRepository.savePerson(person);
       }
       
       return result;

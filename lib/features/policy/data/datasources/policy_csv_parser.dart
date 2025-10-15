@@ -58,19 +58,9 @@ class PolicyCsvParser {
         );
       }
 
-      // Log first few rows for debugging
-      log('First 5 rows of CSV:');
-      for (var i = 0; i < min(5, rows.length); i++) {
-        final row = rows[i];
-        final endIndex = row.length > 5 ? 5 : row.length;
-        log(
-          'Row $i: ${row.sublist(0, endIndex).map((e) => e?.toString().trim()).toList()}${row.length > 5 ? '...' : ''}',
-        );
-      }
-
       // Extract agent information with bounds checking
-      final agentName = _extractCellValue(rows, agentNameRow, 3, 'Agent Name');
-      final agentId = _extractCellValue(rows, agentIdRow, 3, 'Agent ID');
+      final agentName = _extractCellValue(rows, agentNameRow, 6, 'Agent Name');
+      final agentId = _extractCellValue(rows, agentIdRow, 6, 'Agent ID');
       log('Agent: $agentName (ID: $agentId)');
 
       // Parse date range with bounds checking
@@ -88,7 +78,9 @@ class PolicyCsvParser {
       int errorCount = 0;
       final lastDataRow = rows.length - 1; // Last row index
 
-      log('Processing policy data from row $headerRowIndex to $lastDataRow (skipping last row as it contains totals)...');
+      log(
+        'Processing policy data from row $headerRowIndex to $lastDataRow (skipping last row as it contains totals)...',
+      );
       for (var i = headerRowIndex; i < lastDataRow; i++) {
         try {
           final row = rows[i];

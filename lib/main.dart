@@ -23,8 +23,11 @@ void main() async {
     MultiProvider(
       providers: [
         // Repositories
-        Provider<PolicyRepository>(create: (_) => PolicyRepositoryImpl()),
         Provider<PersonRepository>(create: (_) => PersonRepositoryImpl()),
+        Provider<PolicyRepository>(
+          create: (context) =>
+              PolicyRepositoryImpl(context.read<PersonRepository>()),
+        ),
 
         // Providers
         ChangeNotifierProvider(
@@ -213,9 +216,6 @@ class _MyHomePageState extends State<MyHomePage> {
 
     return Column(
       children: [
-        if (personProvider.hasPerson)
-          _buildPersonSummary(context, personProvider),
-        // Search bar
         Padding(
           padding: const EdgeInsets.all(16.0),
           child: TextField(
