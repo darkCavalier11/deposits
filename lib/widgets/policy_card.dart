@@ -3,10 +3,18 @@ import 'package:postal_deposit/features/policy/domain/entities/policy_entity.dar
 import 'package:intl/intl.dart';
 
 class PolicyCard extends StatelessWidget {
-  final VoidCallback? onTap;
   final PolicyEntity entry;
+  final VoidCallback? onTap;
+  final VoidCallback? onDelete;
+  final bool showDelete;
 
-  const PolicyCard({super.key, required this.entry, this.onTap});
+  const PolicyCard({
+    super.key,
+    required this.entry,
+    this.onTap,
+    this.onDelete,
+    this.showDelete = true,
+  });
 
   String _formatDate(DateTime date) {
     return DateFormat('dd MMM yyyy').format(date);
@@ -33,9 +41,31 @@ class PolicyCard extends StatelessWidget {
     }
   }
 
-  Color _getStatusColor() {
-    // Add your status logic here if needed
-    return Colors.green;
+
+  Future<void> _showDeleteConfirmation(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Policy'),
+        content: Text(
+          'Are you sure you want to delete policy #${entry.policyNumber}?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Delete', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && onDelete != null) {
+      onDelete!();
+    }
   }
 
   @override
@@ -49,67 +79,70 @@ class PolicyCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         side: BorderSide(color: Colors.grey.shade200, width: 1),
       ),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header with Policy Number and Status
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      child: Stack(
+        children: [
+          InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(12),
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(
-                    child: Text(
-                      'Policy #${entry.policyNumber}',
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: theme.primaryColor,
+                  // Header with Policy Number and Status
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'Policy #${entry.policyNumber}',
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: theme.primaryColor,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
+                    ],
                   ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: _getStatusColor().withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      'Active',
-                      style: theme.textTheme.labelSmall?.copyWith(
-                        color: _getStatusColor(),
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
+
+                  const SizedBox(height: 16),
+
+                  // Policy Holder and Product Info
+                  _buildInfoSection(theme),
+
+                  const Divider(height: 24, thickness: 1),
+
+                  // Financial Info
+                  _buildFinancialSection(theme),
+
+                  const SizedBox(height: 12),
+
+                  // Additional Details
+                  _buildDetailChips(theme),
+
+                  if (onTap != null) _buildViewDetailsButton(theme),
                 ],
               ),
-
-              const SizedBox(height: 16),
-
-              // Policy Holder and Product Info
-              _buildInfoSection(theme),
-
-              const Divider(height: 24, thickness: 1),
-
-              // Financial Info
-              _buildFinancialSection(theme),
-
-              const SizedBox(height: 12),
-
-              // Additional Details
-              _buildDetailChips(theme),
-
-              if (onTap != null) _buildViewDetailsButton(theme),
-            ],
+            ),
           ),
-        ),
+          if (showDelete && onDelete != null)
+            Positioned(
+              top: 8,
+              right: 8,
+              child: IconButton(
+                icon: const Icon(
+                  Icons.delete_outline,
+                  color: Colors.red,
+                  size: 20,
+                ),
+                onPressed: () => _showDeleteConfirmation(context),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+                tooltip: 'Delete policy',
+              ),
+            ),
+        ],
       ),
     );
   }

@@ -222,7 +222,21 @@ class _MyHomePageState extends State<MyHomePage> {
               itemCount: policyProvider.policies.length,
               itemBuilder: (context, index) {
                 final entry = policyProvider.policies[index];
-                return PolicyCard(entry: entry);
+                return PolicyCard(
+                  entry: entry,
+                  onDelete: () async {
+                    final success = await context
+                        .read<PolicyProvider>()
+                        .deletePolicy(entry.policyNumber);
+                    if (success && context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Policy deleted successfully'),
+                        ),
+                      );
+                    }
+                  },
+                );
               },
             ),
           ),

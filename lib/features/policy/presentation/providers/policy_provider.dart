@@ -83,6 +83,26 @@ class PolicyProvider with ChangeNotifier {
   }
 
   /// Handles the file picking and import process
+  Future<bool> deletePolicy(String policyNumber) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      final success = await _repository.deletePolicy(policyNumber);
+      if (success) {
+        _policies.removeWhere((policy) => policy.policyNumber == policyNumber);
+      }
+      return success;
+    } catch (e) {
+      _error = 'Failed to delete policy: $e';
+      return false;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
   Future<bool> importPolicies() async {
     try {
       _isImporting = true;

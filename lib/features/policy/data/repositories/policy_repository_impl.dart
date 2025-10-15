@@ -4,6 +4,7 @@ import 'package:postal_deposit/core/storage/hive_service.dart';
 import 'package:postal_deposit/features/policy/data/datasources/policy_csv_parser.dart';
 import 'package:postal_deposit/features/policy/domain/entities/policy_entity.dart';
 import 'package:postal_deposit/features/policy/domain/repositories/policy_repository.dart';
+import 'package:postal_deposit/features/policy/data/datasources/policy_csv_parser.dart';
 
 class PolicyRepositoryImpl implements PolicyRepository {
   @override
@@ -61,6 +62,30 @@ class PolicyRepositoryImpl implements PolicyRepository {
       return result;
     } catch (e) {
       throw Exception('Failed to import policies from file: $e');
+    }
+  }
+
+  @override
+  Future<bool> deletePolicy(String policyNumber) async {
+    try {
+      final policies = await getPolicies();
+      final initialCount = policies.length;
+      
+      // Remove the policy with the matching policy number
+      final updatedPolicies = policies.where(
+        (policy) => policy.policyNumber != policyNumber,
+      ).toList();
+      
+      // If no policy was removed, return false
+      if (updatedPolicies.length == initialCount) {
+        return false;
+      }
+      
+      // Save the updated list
+      await savePolicies(updatedPolicies);
+      return true;
+    } catch (e) {
+      throw Exception('Failed to delete policy: $e');
     }
   }
 }
