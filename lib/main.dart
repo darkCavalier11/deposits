@@ -219,7 +219,6 @@ class _MyHomePageState extends State<MyHomePage> {
           child: RefreshIndicator(
             onRefresh: () => policyProvider.loadPolicies(),
             child: ListView.builder(
-              padding: const EdgeInsets.all(16.0),
               itemCount: policyProvider.policies.length,
               itemBuilder: (context, index) {
                 final entry = policyProvider.policies[index];

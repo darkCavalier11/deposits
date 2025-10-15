@@ -82,13 +82,14 @@ class PolicyCsvParser {
       );
       log('Date range: ${_formatDate(fromDate)} to ${_formatDate(toDate)}');
 
-      // Process policy data rows
+      // Process policy data rows (skip the last row as it contains totals)
       final policies = <PolicyEntity>[];
       int successCount = 0;
       int errorCount = 0;
+      final lastDataRow = rows.length - 1; // Last row index
 
-      log('Processing policy data starting from row $headerRowIndex...');
-      for (var i = headerRowIndex; i < rows.length; i++) {
+      log('Processing policy data from row $headerRowIndex to $lastDataRow (skipping last row as it contains totals)...');
+      for (var i = headerRowIndex; i < lastDataRow; i++) {
         try {
           final row = rows[i];
 
