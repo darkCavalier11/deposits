@@ -2,14 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:postal_deposit/features/policy/presentation/widgets/import_policy_button.dart';
 
 class ImportExcelButton extends StatelessWidget {
-  const ImportExcelButton({super.key});
-
+  final VoidCallback? onImported;
+  
+  const ImportExcelButton({
+    super.key,
+    this.onImported,
+  });
   @override
   Widget build(BuildContext context) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
-        children: [
+        children: <Widget>[
           const Icon(
             Icons.upload_file,
             size: 80,
@@ -39,12 +43,13 @@ class ImportExcelButton extends StatelessWidget {
           const SizedBox(height: 32),
           ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 250),
-            child: const ImportPolicyButton(),
+            child: ImportPolicyButton(
+              onImported: onImported,
+            ),
           ),
           const SizedBox(height: 16),
           TextButton.icon(
             onPressed: () {
-              // TODO: Add help or instructions
               _showFileFormatHelp(context);
             },
             icon: const Icon(Icons.help_outline),

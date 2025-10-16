@@ -151,7 +151,7 @@ class _MyHomePageState extends State<MyHomePage> {
         backgroundColor: Theme.of(context).primaryColor,
         title: Text(widget.title),
         actions: [
-          if (policyProvider.hasPolicies)
+          if (personProvider.hasPerson || policyProvider.hasPolicies)
             IconButton(
               icon: const Icon(Icons.person_outline, size: 28),
               onPressed: () => _showPersonDetails(context, personProvider),
@@ -203,7 +203,13 @@ class _MyHomePageState extends State<MyHomePage> {
         return _buildPersonView(context, personProvider);
       }
 
-      return const ImportExcelButton();
+      return ImportExcelButton(
+        onImported: () {
+          // Refresh the person data after import
+          final personProvider = context.read<PersonProvider>();
+          personProvider.loadPerson();
+        },
+      );
     }
 
     return Column(
