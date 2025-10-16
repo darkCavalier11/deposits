@@ -1,6 +1,9 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:postal_deposit/features/policy/domain/entities/policy_entity.dart';
 import 'package:postal_deposit/features/policy/domain/entities/policy_filter.dart';
 import 'package:postal_deposit/features/policy/presentation/pages/add_policy_page.dart';
@@ -59,7 +62,6 @@ class MyApp extends StatelessWidget {
           seedColor: Colors.greenAccent, // Darker green
         ),
         useMaterial3: true,
-        appBarTheme: const AppBarTheme(centerTitle: true),
         inputDecorationTheme: InputDecorationTheme(
           filled: true,
           fillColor: Colors.grey.shade50,
@@ -132,6 +134,81 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
+  Future<void> _exportToCsv(
+    BuildContext context,
+    PolicyProvider policyProvider,
+  ) async {
+    final policies = policyProvider.policies;
+
+    if (policies.isEmpty) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No policies to export'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    try {
+      // Create CSV content
+      final csvContent = StringBuffer();
+
+      // Add header
+      csvContent.writeln(
+        'Policy Number,Insured,Product,Sum Assured,Premium,Payment Mode,Issue Date,DOB,Status',
+      );
+
+      // Add data rows
+      for (final policy in policies) {
+        csvContent.writeln(
+          [
+            policy.policyNumber,
+            policy.insured,
+            policy.productName,
+            policy.sumAssured.toString(),
+            policy.premiumAmt.toString(),
+            policy.paymentMode,
+            _formatDate(policy.issueDate),
+            _formatDate(policy.insuredDateOfBirth),
+            policy.paidUntil != null &&
+                    policy.paidUntil!.isAfter(DateTime.now())
+                ? 'Active'
+                : 'Inactive',
+          ].map((field) => '"$field"').join(','),
+        );
+      }
+
+      // Get temporary directory
+      final directory = await getTemporaryDirectory();
+      final file = File(
+        '${directory.path}/policies_export_${DateTime.now().millisecondsSinceEpoch}.csv',
+      );
+
+      // Write to file
+      await file.writeAsString(csvContent.toString());
+
+      // Share the file
+      if (context.mounted) {
+        await Share.shareFiles(
+          [file.path],
+          subject: 'Policies Export',
+          text: 'Here is the exported policies data',
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error exporting to CSV: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final policyProvider = context.watch<PolicyProvider>();
@@ -148,11 +225,14 @@ class _MyHomePageState extends State<MyHomePage> {
           ),
         ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.add, color: Colors.white, size: 28),
-            onPressed: () => _navigateToAddPolicy(context, policyProvider),
-            tooltip: 'Add New Policy',
-          ),
+          if (policyProvider.hasPolicies) ...[
+            IconButton(
+              icon: const Icon(Icons.share, color: Colors.white, size: 24),
+              onPressed: () => _exportToCsv(context, policyProvider),
+              tooltip: 'Export to CSV',
+            ),
+            const SizedBox(width: 8),
+          ],
           if (policyProvider.hasPolicies)
             IconButton(
               icon: const Icon(Icons.filter_alt_outlined, color: Colors.white),
@@ -172,10 +252,15 @@ class _MyHomePageState extends State<MyHomePage> {
         ],
       ),
       body: _buildBody(context, policyProvider, personProvider),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _navigateToAddPolicy(context, policyProvider),
-        backgroundColor: Theme.of(context).primaryColor,
-        child: const Icon(Icons.add, color: Colors.white, size: 28),
+      floatingActionButton: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          FloatingActionButton(
+            onPressed: () => _navigateToAddPolicy(context, policyProvider),
+            backgroundColor: Theme.of(context).primaryColor,
+            child: const Icon(Icons.add, color: Colors.white, size: 28),
+          ),
+        ],
       ),
     );
   }
