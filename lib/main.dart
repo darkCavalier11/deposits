@@ -53,45 +53,10 @@ class MyApp extends StatelessWidget {
       title: 'Postal Deposit',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF2E7D32), // Darker green
-          primary: const Color(0xFF2E7D32),
-          secondary: const Color(0xFF4CAF50),
-          surfaceTint: Colors.white,
-          brightness: Brightness.light,
+          seedColor: Colors.greenAccent, // Darker green
         ),
         useMaterial3: true,
-        appBarTheme: const AppBarTheme(
-          centerTitle: true,
-          elevation: 4,
-          titleTextStyle: TextStyle(
-            fontSize: 22,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
-        ),
-        cardTheme: CardThemeData(
-          elevation: 3,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-            side: BorderSide(color: Colors.grey.shade200, width: 1),
-          ),
-        ),
-        elevatedButtonTheme: ElevatedButtonThemeData(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF2E7D32),
-            foregroundColor: Colors.white,
-            elevation: 3,
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
-            ),
-            textStyle: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              letterSpacing: 0.5,
-            ),
-          ),
-        ),
+        appBarTheme: const AppBarTheme(centerTitle: true),
         inputDecorationTheme: InputDecorationTheme(
           filled: true,
           fillColor: Colors.grey.shade50,
@@ -113,7 +78,7 @@ class MyApp extends StatelessWidget {
           ),
         ),
       ),
-      home: const MyHomePage(title: 'POSTAL DEPOSIT'),
+      home: const MyHomePage(title: 'Postal Deposits'),
       debugShowCheckedModeBanner: false,
     );
   }
@@ -149,11 +114,21 @@ class _MyHomePageState extends State<MyHomePage> {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Theme.of(context).primaryColor,
-        title: Text(widget.title),
+        title: Text(
+          widget.title,
+          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+            color: Colors.white,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
         actions: [
           if (personProvider.hasPerson || policyProvider.hasPolicies)
             IconButton(
-              icon: const Icon(Icons.person_outline, size: 28),
+              icon: const Icon(
+                Icons.person_outline,
+                size: 28,
+                color: Colors.white,
+              ),
               onPressed: () => _showPersonDetails(context, personProvider),
               tooltip: 'Agent Details',
             ),
