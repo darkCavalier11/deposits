@@ -121,16 +121,59 @@ class _MyHomePageState extends State<MyHomePage> {
     );
 
     if (result != null && context.mounted) {
-      // Add the new policy
-      await policyProvider.addPolicy(result);
+      try {
+        // Add the new policy
+        await policyProvider.addPolicy(result);
 
-      // Show success message
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Policy added successfully!'),
-          backgroundColor: Colors.green,
-        ),
-      );
+        // Get the latest policies after adding
+        final policies = policyProvider.policies;
+
+        // Update person's statistics
+        final personProvider = context.read<PersonProvider>();
+        if (personProvider.hasPerson) {
+          final totalSumAssured = policies.fold<double>(
+            0,
+            (sum, policy) => sum + policy.sumAssured,
+          );
+          final totalPremiumAssured = policies.fold<double>(
+            0,
+            (sum, policy) => sum + policy.premiumAmt,
+          );
+          final policyCount = policies.length;
+
+          // Create an updated person with new stats
+          final updatedPerson = personProvider.person!.copyWith(
+            totalSumAssured: totalSumAssured,
+            totalPremiumAssured: totalPremiumAssured,
+            policyCount: policyCount,
+          );
+
+          // Save the updated person
+          await personProvider.savePerson(updatedPerson);
+
+          // Force a refresh of the person data
+          await personProvider.loadPerson();
+        }
+
+        // Show success message
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Policy added successfully!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error updating person data: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
     }
   }
 
