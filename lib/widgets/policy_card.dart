@@ -63,6 +63,18 @@ class _PolicyCardState extends State<PolicyCard> {
     super.dispose();
   }
 
+  bool get _isPolicyPaid {
+    if (widget.entry.paidUntil == null) return false;
+    final now = DateTime.now();
+    final currentMonth = DateTime(now.year, now.month);
+    final paidUntilMonth = DateTime(
+      widget.entry.paidUntil!.year,
+      widget.entry.paidUntil!.month,
+    );
+    return paidUntilMonth.isAfter(currentMonth) ||
+        paidUntilMonth.isAtSameMomentAs(currentMonth);
+  }
+
   Future<void> _showMakePaymentDialog() async {
     final now = DateTime.now();
     PremiumFrequency selectedFrequency = widget.entry.premiumFrequency;
@@ -333,14 +345,21 @@ class _PolicyCardState extends State<PolicyCard> {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final textTheme = theme.textTheme;
+    final isPaid = _isPolicyPaid;
 
     return Card(
       elevation: _kCardElevation,
       margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(_kCardRadius),
-        side: BorderSide(color: colorScheme.outline.withOpacity(0.1)),
+        side: BorderSide(
+          color: isPaid
+              ? colorScheme.primary.withOpacity(0.2)
+              : colorScheme.error.withOpacity(0.2),
+          width: 1.5,
+        ),
       ),
+
       child: Stack(
         children: [
           InkWell(
@@ -452,10 +471,7 @@ class _PolicyCardState extends State<PolicyCard> {
 
     return Container(
       padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: colorScheme.surfaceVariant.withOpacity(0.3),
-        borderRadius: BorderRadius.circular(8),
-      ),
+      decoration: BoxDecoration(borderRadius: BorderRadius.circular(8)),
       child: Column(
         children: [
           _buildInfoRow(
@@ -501,6 +517,7 @@ class _PolicyCardState extends State<PolicyCard> {
   Widget _buildFinancialSection(ThemeData theme) {
     final colorScheme = theme.colorScheme;
     final textTheme = theme.textTheme;
+    final isPaid = _isPolicyPaid;
 
     return Row(
       children: [
@@ -530,11 +547,49 @@ class _PolicyCardState extends State<PolicyCard> {
   Widget _buildStatusChip(ThemeData theme) {
     if (widget.entry.paidUntil == null) return const SizedBox.shrink();
 
-    return Text(
-      'Paid until: ${_formatDate(widget.entry.paidUntil!, monthYearOnly: true)}',
-      style: theme.textTheme.bodySmall?.copyWith(
-        color: Colors.green[700],
-        fontWeight: FontWeight.w500,
+    final isPaid = _isPolicyPaid;
+    final statusText = isPaid ? 'PAID' : 'DUE';
+    final statusColor = isPaid
+        ? theme.colorScheme.primary
+        : theme.colorScheme.error;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: isPaid
+            ? statusColor.withOpacity(0.1)
+            : statusColor.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: statusColor.withOpacity(0.3), width: 1),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            isPaid ? Icons.check_circle : Icons.warning_amber_rounded,
+            size: 14,
+            color: statusColor,
+          ),
+          const SizedBox(width: 4),
+          Text(
+            statusText,
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: statusColor,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.5,
+            ),
+          ),
+          if (isPaid) ...[
+            const SizedBox(width: 4),
+            Text(
+              _formatDate(widget.entry.paidUntil!, monthYearOnly: true),
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: statusColor.withOpacity(0.8),
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }
@@ -569,11 +624,52 @@ class _PolicyCardState extends State<PolicyCard> {
   Widget _buildPaymentButton(ThemeData theme) {
     if (widget.onMakePayment == null) return const SizedBox.shrink();
 
-    return TextButton.icon(
+    final isPaid = _isPolicyPaid;
+
+    if (isPaid) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.primary.withOpacity(0.05),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: theme.colorScheme.primary.withOpacity(0.2),
+            width: 1,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.check_circle_outline,
+              size: 16,
+              color: theme.colorScheme.primary,
+            ),
+            const SizedBox(width: 6),
+            Text(
+              'PAID',
+              style: theme.textTheme.labelMedium?.copyWith(
+                color: theme.colorScheme.primary,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return FilledButton.icon(
       onPressed: _showMakePaymentDialog,
       icon: const Icon(Icons.payment_outlined, size: 16),
-      label: const Text('MAKE PAYMENT'),
-      style: TextButton.styleFrom(foregroundColor: Colors.green),
+      label: const Text('PAY NOW'),
+      style: FilledButton.styleFrom(
+        backgroundColor: theme.colorScheme.primary,
+        foregroundColor: theme.colorScheme.onError,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        elevation: 0,
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      ),
     );
   }
 
