@@ -425,10 +425,7 @@ class _MyHomePageState extends State<MyHomePage> {
                   children: [
                     const Text(
                       'Total Collected',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.white70,
-                      ),
+                      style: TextStyle(fontSize: 14, color: Colors.white70),
                     ),
                     Container(
                       padding: const EdgeInsets.symmetric(
