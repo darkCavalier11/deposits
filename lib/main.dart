@@ -408,13 +408,43 @@ class _MyHomePageState extends State<MyHomePage> {
                       return PolicyCard(
                         entry: entry,
                         onDelete: () async {
-                          final success = await context
-                              .read<PolicyProvider>()
-                              .deletePolicy(entry.policyNumber);
+                          final policyProvider = context.read<PolicyProvider>();
+                          final personProvider = context.read<PersonProvider>();
+                          
+                          final success = await policyProvider.deletePolicy(entry.policyNumber);
+                          
                           if (success && context.mounted) {
+                            // Update person's statistics after successful deletion
+                            if (personProvider.hasPerson) {
+                              final policies = policyProvider.policies;
+                              final totalSumAssured = policies.fold<double>(
+                                0,
+                                (sum, policy) => sum + policy.sumAssured,
+                              );
+                              final totalPremiumAssured = policies.fold<double>(
+                                0,
+                                (sum, policy) => sum + policy.premiumAmt,
+                              );
+                              final policyCount = policies.length;
+
+                              // Create an updated person with new stats
+                              final updatedPerson = personProvider.person!.copyWith(
+                                totalSumAssured: totalSumAssured,
+                                totalPremiumAssured: totalPremiumAssured,
+                                policyCount: policyCount,
+                              );
+
+                              // Save the updated person
+                              await personProvider.savePerson(updatedPerson);
+                              
+                              // Force a refresh of the person data
+                              await personProvider.loadPerson();
+                            }
+                            
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
-                                content: Text('Policy deleted successfully'),
+                                content: Text('Policy deleted successfully!'),
+                                backgroundColor: Colors.green,
                               ),
                             );
                           }
