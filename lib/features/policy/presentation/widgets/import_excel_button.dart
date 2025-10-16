@@ -1,31 +1,29 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:postal_deposit/features/policy/presentation/widgets/import_policy_button.dart';
 
 class ImportExcelButton extends StatelessWidget {
   final VoidCallback? onImported;
-  
-  const ImportExcelButton({
-    super.key,
-    this.onImported,
-  });
+
+  const ImportExcelButton({super.key, this.onImported});
   @override
   Widget build(BuildContext context) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: <Widget>[
-          const Icon(
-            Icons.upload_file,
+          Icon(
+            CupertinoIcons.list_bullet,
             size: 80,
-            color: Colors.blue,
+            color: Theme.of(context).primaryColor,
           ),
           const SizedBox(height: 24),
           Text(
             'Welcome to Postal Deposit',
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  color: Theme.of(context).primaryColor,
-                  fontWeight: FontWeight.bold,
-                ),
+              color: Theme.of(context).primaryColor,
+              fontWeight: FontWeight.bold,
+            ),
           ),
           const SizedBox(height: 16),
           const Padding(
@@ -33,19 +31,13 @@ class ImportExcelButton extends StatelessWidget {
             child: Text(
               'Get started by importing your policy data from a CSV or Excel file',
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.grey,
-                height: 1.5,
-              ),
+              style: TextStyle(fontSize: 16, color: Colors.grey, height: 1.5),
             ),
           ),
           const SizedBox(height: 32),
           ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 250),
-            child: ImportPolicyButton(
-              onImported: onImported,
-            ),
+            child: ImportPolicyButton(onImported: onImported),
           ),
           const SizedBox(height: 16),
           TextButton.icon(
@@ -70,7 +62,9 @@ class ImportExcelButton extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text('Your CSV/Excel file should include the following columns:'),
+              const Text(
+                'Your CSV/Excel file should include the following columns:',
+              ),
               const SizedBox(height: 16),
               _buildHelpRow('Policy Number', 'Unique policy identifier'),
               _buildHelpRow('Insured Name', 'Name of the policyholder'),
@@ -80,7 +74,10 @@ class ImportExcelButton extends StatelessWidget {
               _buildHelpRow('Product Name', 'Name of the insurance product'),
               _buildHelpRow('Payment Mode', 'Payment method'),
               _buildHelpRow('Issue Date', 'Policy start date (DD/MM/YYYY)'),
-              _buildHelpRow('Date of Birth', 'Policyholder\'s DOB (DD/MM/YYYY)'),
+              _buildHelpRow(
+                'Date of Birth',
+                'Policyholder\'s DOB (DD/MM/YYYY)',
+              ),
               const SizedBox(height: 16),
               const Text('The first row should contain column headers.'),
             ],

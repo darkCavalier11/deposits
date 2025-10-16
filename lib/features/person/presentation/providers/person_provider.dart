@@ -16,14 +16,24 @@ class PersonProvider with ChangeNotifier {
   bool get hasPerson => _person != null;
 
   Future<void> loadPerson() async {
+    debugPrint('🔄 [PersonProvider] Loading person data...');
     _isLoading = true;
     _error = null;
     notifyListeners();
 
     try {
       _person = await _repository.getPerson();
-    } catch (e) {
+      debugPrint('✅ [PersonProvider] Person data loaded: ${_person != null}');
+      if (_person != null) {
+        debugPrint('   Agent Name: ${_person!.agentName}');
+        debugPrint('   Agent ID: ${_person!.agentId}');
+      } else {
+        debugPrint('   No person data found in repository');
+      }
+    } catch (e, stackTrace) {
       _error = 'Failed to load person: $e';
+      debugPrint('❌ [PersonProvider] Error loading person: $e');
+      debugPrint('📝 Stack trace: $stackTrace');
     } finally {
       _isLoading = false;
       notifyListeners();

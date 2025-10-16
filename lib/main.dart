@@ -282,16 +282,26 @@ class _MyHomePageState extends State<MyHomePage> {
               onPressed: () => _showFilterDialog(context, policyProvider),
               tooltip: 'Filter Policies',
             ),
-          if (personProvider.hasPerson || policyProvider.hasPolicies)
-            IconButton(
-              icon: const Icon(
-                Icons.person_outline,
-                size: 28,
-                color: Colors.white,
-              ),
-              onPressed: () => _showPersonDetails(context, personProvider),
-              tooltip: 'Agent Details',
+          // Always show the person button, but handle the empty state in _showPersonDetails
+          IconButton(
+            icon: const Icon(
+              Icons.person_outline,
+              size: 28,
+              color: Colors.white,
             ),
+            onPressed: () async {
+              debugPrint('Person details button pressed');
+              debugPrint('hasPerson: ${personProvider.hasPerson}');
+              debugPrint('person: ${personProvider.person}');
+              await _showPersonDetails(context, personProvider);
+              
+              // After showing the dialog, refresh the person data
+              if (context.mounted) {
+                await personProvider.loadPerson();
+              }
+            },
+            tooltip: 'Agent Details',
+          ),
         ],
       ),
       body: _buildBody(context, policyProvider, personProvider),
@@ -368,7 +378,7 @@ class _MyHomePageState extends State<MyHomePage> {
         // Monthly Collection Header
         Container(
           width: double.infinity,
-          margin: const EdgeInsets.all(16.0),
+
           decoration: BoxDecoration(
             gradient: LinearGradient(
               colors: [
@@ -386,77 +396,6 @@ class _MyHomePageState extends State<MyHomePage> {
                 offset: const Offset(0, 4),
               ),
             ],
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.2),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.account_balance_wallet_rounded,
-                        color: Colors.white,
-                        size: 20,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Text(
-                      '${DateFormat('MMMM yyyy').format(now)} COLLECTION',
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white,
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    const Text(
-                      'Total Collected',
-                      style: TextStyle(fontSize: 14, color: Colors.white70),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.9),
-                        borderRadius: BorderRadius.circular(20),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.05),
-                            blurRadius: 8,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: Text(
-                        '₹${NumberFormat('#,##0').format(monthlyCollection)}',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Theme.of(context).primaryColor,
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
           ),
         ),
 
@@ -752,7 +691,25 @@ class _MyHomePageState extends State<MyHomePage> {
     BuildContext context,
     PersonProvider personProvider,
   ) async {
-    if (!personProvider.hasPerson) return;
+    debugPrint('_showPersonDetails called');
+    
+    // Try to load person data if not already loaded
+    if (!personProvider.hasPerson) {
+      debugPrint('No person data available. Attempting to load...');
+      await personProvider.loadPerson();
+      
+      if (!personProvider.hasPerson) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Please set up your agent details first'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+        return;
+      }
+    }
 
     final theme = Theme.of(context);
     final person = personProvider.person!;
