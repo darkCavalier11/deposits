@@ -357,8 +357,53 @@ class _MyHomePageState extends State<MyHomePage> {
       );
     }
 
+    // Get current month's collection
+    final now = DateTime.now();
+    final monthKey = '${now.year}-${now.month.toString().padLeft(2, '0')}';
+    final monthlyCollection =
+        personProvider.person?.monthlyCollections[monthKey] ?? 0.0;
+
     return Column(
       children: [
+        // Monthly Collection Header
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+          color: Theme.of(context).primaryColor.withOpacity(0.1),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  const Icon(
+                    Icons.calendar_today,
+                    color: Colors.blue,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    '${DateFormat('MMMM yyyy').format(now)} Collection:',
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.blue,
+                    ),
+                  ),
+                ],
+              ),
+              Text(
+                '₹${NumberFormat('#,##0').format(monthlyCollection)}',
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.green,
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        // Search Bar
         Padding(
           padding: const EdgeInsets.all(16.0),
           child: TextField(
@@ -381,7 +426,6 @@ class _MyHomePageState extends State<MyHomePage> {
                 borderSide: BorderSide(color: Colors.grey[200]!),
               ),
             ),
-
             onChanged: (value) {
               policyProvider.setSearchQuery(value);
             },
@@ -410,9 +454,11 @@ class _MyHomePageState extends State<MyHomePage> {
                         onDelete: () async {
                           final policyProvider = context.read<PolicyProvider>();
                           final personProvider = context.read<PersonProvider>();
-                          
-                          final success = await policyProvider.deletePolicy(entry.policyNumber);
-                          
+
+                          final success = await policyProvider.deletePolicy(
+                            entry.policyNumber,
+                          );
+
                           if (success && context.mounted) {
                             // Update person's statistics after successful deletion
                             if (personProvider.hasPerson) {
@@ -428,19 +474,20 @@ class _MyHomePageState extends State<MyHomePage> {
                               final policyCount = policies.length;
 
                               // Create an updated person with new stats
-                              final updatedPerson = personProvider.person!.copyWith(
-                                totalSumAssured: totalSumAssured,
-                                totalPremiumAssured: totalPremiumAssured,
-                                policyCount: policyCount,
-                              );
+                              final updatedPerson = personProvider.person!
+                                  .copyWith(
+                                    totalSumAssured: totalSumAssured,
+                                    totalPremiumAssured: totalPremiumAssured,
+                                    policyCount: policyCount,
+                                  );
 
                               // Save the updated person
                               await personProvider.savePerson(updatedPerson);
-                              
+
                               // Force a refresh of the person data
                               await personProvider.loadPerson();
                             }
-                            
+
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
                                 content: Text('Policy deleted successfully!'),
@@ -469,18 +516,27 @@ class _MyHomePageState extends State<MyHomePage> {
                           }
                         },
                         onMakePayment: (policy, paidUntil) async {
+                          final policyProvider = context.read<PolicyProvider>();
+                          final personProvider = context.read<PersonProvider>();
+
                           final updatedPolicy = policy.copyWith(
                             paidUntil: paidUntil,
                           );
-                          final success = await context
-                              .read<PolicyProvider>()
-                              .updatePolicy(updatedPolicy);
+
+                          final success = await policyProvider.updatePolicy(
+                            updatedPolicy,
+                          );
 
                           if (success && context.mounted) {
+                            // Update monthly collection
+                            await personProvider.updateMonthlyCollection(
+                              policy.premiumAmt,
+                            );
+
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 content: Text(
-                                  'Payment recorded successfully! Valid until ${_formatDate(paidUntil)}',
+                                  'Payment of ₹${policy.premiumAmt} recorded successfully! Valid until ${_formatDate(paidUntil)}',
                                 ),
                                 backgroundColor: Colors.green,
                               ),

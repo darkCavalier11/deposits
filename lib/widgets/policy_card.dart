@@ -548,7 +548,7 @@ class _PolicyCardState extends State<PolicyCard> {
     if (widget.entry.paidUntil == null) return const SizedBox.shrink();
 
     final isPaid = _isPolicyPaid;
-    final statusText = isPaid ? 'PAID' : 'DUE';
+    final statusText = isPaid ? 'DUE ON' : 'DUE';
     final statusColor = isPaid
         ? theme.colorScheme.primary
         : theme.colorScheme.error;

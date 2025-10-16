@@ -83,4 +83,26 @@ class PersonProvider with ChangeNotifier {
 
     await savePerson(updatedPerson);
   }
+
+  /// Updates the monthly collection amount for the current month
+  Future<void> updateMonthlyCollection(double amount) async {
+    if (_person == null) return;
+
+    final now = DateTime.now();
+    final monthKey = '${now.year}-${now.month.toString().padLeft(2, '0')}';
+    
+    // Get current month's collection or 0 if not exists
+    final currentAmount = _person!.monthlyCollections[monthKey] ?? 0;
+    
+    // Update the monthly collections map
+    final updatedCollections = Map<String, double>.from(_person!.monthlyCollections);
+    updatedCollections[monthKey] = currentAmount + amount;
+    
+    // Update the person with new collections
+    final updatedPerson = _person!.copyWith(
+      monthlyCollections: updatedCollections,
+    );
+    
+    await savePerson(updatedPerson);
+  }
 }

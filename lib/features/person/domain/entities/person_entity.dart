@@ -6,6 +6,7 @@ class PersonEntity {
   final double totalSumAssured;
   final double totalPremiumAssured;
   final int policyCount;
+  final Map<String, double> monthlyCollections; // Format: {'YYYY-MM': amount}
 
   const PersonEntity({
     required this.agentName,
@@ -15,7 +16,8 @@ class PersonEntity {
     required this.totalSumAssured,
     required this.totalPremiumAssured,
     required this.policyCount,
-  });
+    Map<String, double>? monthlyCollections,
+  }) : monthlyCollections = monthlyCollections ?? const {};
 
   PersonEntity copyWith({
     String? agentName,
@@ -25,6 +27,7 @@ class PersonEntity {
     double? totalSumAssured,
     double? totalPremiumAssured,
     int? policyCount,
+    Map<String, double>? monthlyCollections,
   }) {
     return PersonEntity(
       agentName: agentName ?? this.agentName,
@@ -33,7 +36,8 @@ class PersonEntity {
       issuedDateTo: issuedDateTo ?? this.issuedDateTo,
       totalSumAssured: totalSumAssured ?? this.totalSumAssured,
       totalPremiumAssured: totalPremiumAssured ?? this.totalPremiumAssured,
-      policyCount: policyCount ?? this.policyCount,
+policyCount: policyCount ?? this.policyCount,
+      monthlyCollections: monthlyCollections ?? this.monthlyCollections,
     );
   }
 
@@ -43,9 +47,12 @@ class PersonEntity {
       'agentId': agentId,
       'issuedDateFrom': issuedDateFrom.toIso8601String(),
       'issuedDateTo': issuedDateTo.toIso8601String(),
-      'totalSumAssured': totalSumAssured,
+'totalSumAssured': totalSumAssured,
       'totalPremiumAssured': totalPremiumAssured,
       'policyCount': policyCount,
+      'monthlyCollections': monthlyCollections.map(
+        (key, value) => MapEntry(key, value),
+      ),
     };
   }
 
@@ -55,9 +62,12 @@ class PersonEntity {
       agentId: map['agentId'] as String,
       issuedDateFrom: DateTime.parse(map['issuedDateFrom'] as String),
       issuedDateTo: DateTime.parse(map['issuedDateTo'] as String),
-      totalSumAssured: (map['totalSumAssured'] as num).toDouble(),
+totalSumAssured: (map['totalSumAssured'] as num).toDouble(),
       totalPremiumAssured: (map['totalPremiumAssured'] as num).toDouble(),
       policyCount: map['policyCount'] as int,
+      monthlyCollections: (map['monthlyCollections'] as Map<String, dynamic>?)?.map(
+        (key, value) => MapEntry(key, (value as num).toDouble()),
+      ) ?? {},
     );
   }
 }
