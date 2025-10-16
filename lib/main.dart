@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
+import 'package:postal_deposit/features/policy/domain/entities/policy_filter.dart';
 
 import 'core/storage/hive_service.dart';
 import 'features/person/data/repositories/person_repository_impl.dart';
@@ -122,6 +123,12 @@ class _MyHomePageState extends State<MyHomePage> {
           ),
         ),
         actions: [
+          if (policyProvider.hasPolicies)
+            IconButton(
+              icon: const Icon(Icons.filter_alt_outlined, color: Colors.white),
+              onPressed: () => _showFilterDialog(context, policyProvider),
+              tooltip: 'Filter Policies',
+            ),
           if (personProvider.hasPerson || policyProvider.hasPolicies)
             IconButton(
               icon: const Icon(
@@ -269,15 +276,19 @@ class _MyHomePageState extends State<MyHomePage> {
                           }
                         },
                         onMakePayment: (policy, paidUntil) async {
-                          final updatedPolicy = policy.copyWith(paidUntil: paidUntil);
+                          final updatedPolicy = policy.copyWith(
+                            paidUntil: paidUntil,
+                          );
                           final success = await context
                               .read<PolicyProvider>()
                               .updatePolicy(updatedPolicy);
-                          
+
                           if (success && context.mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
-                                content: Text('Payment recorded successfully! Valid until ${_formatDate(paidUntil)}'),
+                                content: Text(
+                                  'Payment recorded successfully! Valid until ${_formatDate(paidUntil)}',
+                                ),
                                 backgroundColor: Colors.green,
                               ),
                             );
@@ -829,6 +840,76 @@ class _MyHomePageState extends State<MyHomePage> {
           ),
         ],
       ),
+    );
+  }
+
+  Future<void> _showFilterDialog(
+    BuildContext context,
+    PolicyProvider policyProvider,
+  ) async {
+    final currentFilter = policyProvider.currentFilter;
+
+    await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Filter Policies'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _buildFilterOption(
+              context,
+              title: 'Show All',
+              isSelected: currentFilter == PolicyFilter.all,
+              onTap: () {
+                policyProvider.setFilter(PolicyFilter.all);
+                Navigator.pop(context);
+              },
+            ),
+            const Divider(height: 1),
+            _buildFilterOption(
+              context,
+              title: 'Show Paid',
+              isSelected: currentFilter == PolicyFilter.paid,
+              onTap: () {
+                policyProvider.setFilter(PolicyFilter.paid);
+                Navigator.pop(context);
+              },
+            ),
+            const Divider(height: 1),
+            _buildFilterOption(
+              context,
+              title: 'Show Unpaid',
+              isSelected: currentFilter == PolicyFilter.unpaid,
+              onTap: () {
+                policyProvider.setFilter(PolicyFilter.unpaid);
+                Navigator.pop(context);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFilterOption(
+    BuildContext context, {
+    required String title,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    return ListTile(
+      title: Text(title),
+      trailing: isSelected
+          ? const Icon(Icons.check, color: Colors.green)
+          : null,
+      onTap: onTap,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
+      minVerticalPadding: 0,
+      dense: true,
+      tileColor: isSelected
+          ? Theme.of(context).colorScheme.primary.withOpacity(0.1)
+          : null,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
     );
   }
 

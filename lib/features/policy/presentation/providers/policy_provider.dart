@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:postal_deposit/features/policy/domain/entities/policy_entity.dart';
+import 'package:postal_deposit/features/policy/domain/entities/policy_filter.dart';
 import 'package:postal_deposit/features/policy/domain/repositories/policy_repository.dart';
 
 /// Manages the state and business logic for policy-related operations.
@@ -27,8 +28,29 @@ class PolicyProvider with ChangeNotifier {
   }
 
   // Getters
-  List<PolicyEntity> get policies =>
-      _searchQuery.isEmpty ? _policies : _filteredPolicies;
+  PolicyFilter _currentFilter = PolicyFilter.all;
+  PolicyFilter get currentFilter => _currentFilter;
+
+  List<PolicyEntity> get policies {
+    var filtered = _searchQuery.isEmpty ? _policies : _filteredPolicies;
+    
+    if (_currentFilter == PolicyFilter.all) return filtered;
+    
+    final now = DateTime.now();
+    final currentMonth = DateTime(now.year, now.month);
+    
+    return filtered.where((policy) {
+      if (policy.paidUntil == null) {
+        return _currentFilter == PolicyFilter.unpaid;
+      }
+      
+      final paidUntilMonth = DateTime(policy.paidUntil!.year, policy.paidUntil!.month);
+      final isPaid = paidUntilMonth.isAfter(currentMonth) || 
+                    paidUntilMonth.isAtSameMomentAs(currentMonth);
+                    
+      return _currentFilter == PolicyFilter.paid ? isPaid : !isPaid;
+    }).toList();
+  }
   bool get isLoading => _isLoading;
   bool get isImporting => _isImporting;
   String? get error => _error;
@@ -67,6 +89,11 @@ class PolicyProvider with ChangeNotifier {
   void setSearchQuery(String query) {
     _searchQuery = query.trim();
     _updateFilteredPolicies();
+    notifyListeners();
+  }
+  
+  void setFilter(PolicyFilter filter) {
+    _currentFilter = filter;
     notifyListeners();
   }
 
