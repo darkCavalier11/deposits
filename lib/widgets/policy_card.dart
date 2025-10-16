@@ -64,57 +64,88 @@ class _PolicyCardState extends State<PolicyCard> {
   }
 
   Future<void> _showMakePaymentDialog() async {
-    PremiumFrequency? selectedFrequency = widget.entry.premiumFrequency;
     final now = DateTime.now();
-    DateTime? paidUntilDate;
+    PremiumFrequency selectedFrequency = widget.entry.premiumFrequency;
+    DateTime paidUntilDate = _calculatePaidUntil(now, selectedFrequency);
 
-    final confirmed = await showDialog<bool>(
+    // Show frequency selection dialog
+    final confirmedFrequency = await showDialog<PremiumFrequency>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Make Payment'),
-        content: StatefulBuilder(
-          builder: (context, setState) {
-            return Column(
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) {
+          return AlertDialog(
+            title: const Text('Select Payment Frequency'),
+            content: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Select payment frequency:'),
-                const SizedBox(height: 16),
                 DropdownButtonFormField<PremiumFrequency>(
                   value: selectedFrequency,
+                  decoration: const InputDecoration(
+                    border: OutlineInputBorder(),
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
+                  ),
                   items: PremiumFrequency.values.map((frequency) {
                     return DropdownMenuItem(
                       value: frequency,
-                      child: Text(_formatPremiumFrequency(frequency)),
+                      child: Text(
+                        _formatPremiumFrequency(frequency),
+                        style: const TextStyle(fontSize: 14),
+                      ),
                     );
                   }).toList(),
                   onChanged: (value) {
                     if (value != null) {
                       setState(() {
                         selectedFrequency = value;
-                        // Calculate paid until date based on selected frequency
                         paidUntilDate = _calculatePaidUntil(now, value);
                       });
                     }
                   },
                 ),
                 const SizedBox(height: 16),
-                if (paidUntilDate != null)
-                  Text(
-                    'This payment will cover until: ${_formatDate(paidUntilDate!)}\n'
-                    'Amount: ${_formatCurrency(widget.entry.premiumAmt)}',
-                    style: Theme.of(context).textTheme.bodyMedium,
-                  ),
+                Text(
+                  'Amount: ${_formatCurrency(widget.entry.premiumAmt)}',
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
               ],
-            );
-          },
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('CANCEL'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(context, selectedFrequency),
+                child: const Text('NEXT'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+
+    if (confirmedFrequency == null) return;
+
+    // Show confirmation dialog
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Confirm Payment'),
+        content: Text(
+          '${widget.entry.insured} will be paid until ${_formatDate(paidUntilDate, monthYearOnly: true)}\n\n'
+          'Amount: ${_formatCurrency(widget.entry.premiumAmt)}',
+          style: Theme.of(context).textTheme.bodyMedium,
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
             child: const Text('CANCEL'),
           ),
-          ElevatedButton(
+          FilledButton(
             onPressed: () => Navigator.pop(context, true),
             child: const Text('CONFIRM PAYMENT'),
           ),
@@ -122,10 +153,8 @@ class _PolicyCardState extends State<PolicyCard> {
       ),
     );
 
-    if (confirmed == true &&
-        paidUntilDate != null &&
-        widget.onMakePayment != null) {
-      widget.onMakePayment!(widget.entry, paidUntilDate!);
+    if (confirmed == true && widget.onMakePayment != null) {
+      widget.onMakePayment!(widget.entry, paidUntilDate);
     }
   }
 
@@ -404,7 +433,8 @@ class _PolicyCardState extends State<PolicyCard> {
                       ),
 
                       // Payment Button
-                      if (widget.onMakePayment != null) _buildPaymentButton(theme),
+                      if (widget.onMakePayment != null)
+                        _buildPaymentButton(theme),
                     ],
                   ),
                 ],
@@ -499,7 +529,7 @@ class _PolicyCardState extends State<PolicyCard> {
 
   Widget _buildStatusChip(ThemeData theme) {
     if (widget.entry.paidUntil == null) return const SizedBox.shrink();
-    
+
     return Text(
       'Paid until: ${_formatDate(widget.entry.paidUntil!, monthYearOnly: true)}',
       style: theme.textTheme.bodySmall?.copyWith(
@@ -538,7 +568,7 @@ class _PolicyCardState extends State<PolicyCard> {
 
   Widget _buildPaymentButton(ThemeData theme) {
     if (widget.onMakePayment == null) return const SizedBox.shrink();
-    
+
     return TextButton.icon(
       onPressed: _showMakePaymentDialog,
       icon: const Icon(Icons.payment_outlined, size: 16),
