@@ -31,26 +31,55 @@ class PolicyProvider with ChangeNotifier {
   PolicyFilter _currentFilter = PolicyFilter.all;
   PolicyFilter get currentFilter => _currentFilter;
 
+  /// Adds a new policy to the list and saves it
+  Future<void> addPolicy(PolicyEntity policy) async {
+    try {
+      _isLoading = true;
+      notifyListeners();
+
+      // Add the new policy to the beginning of the list
+      _policies = [policy, ..._policies];
+
+      // Save the updated list
+      await _repository.savePolicies(_policies);
+
+      // Apply current filters
+
+      _error = null;
+    } catch (e) {
+      _error = 'Failed to add policy: $e';
+      rethrow;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
   List<PolicyEntity> get policies {
     var filtered = _searchQuery.isEmpty ? _policies : _filteredPolicies;
-    
+
     if (_currentFilter == PolicyFilter.all) return filtered;
-    
+
     final now = DateTime.now();
     final currentMonth = DateTime(now.year, now.month);
-    
+
     return filtered.where((policy) {
       if (policy.paidUntil == null) {
         return _currentFilter == PolicyFilter.unpaid;
       }
-      
-      final paidUntilMonth = DateTime(policy.paidUntil!.year, policy.paidUntil!.month);
-      final isPaid = paidUntilMonth.isAfter(currentMonth) || 
-                    paidUntilMonth.isAtSameMomentAs(currentMonth);
-                    
+
+      final paidUntilMonth = DateTime(
+        policy.paidUntil!.year,
+        policy.paidUntil!.month,
+      );
+      final isPaid =
+          paidUntilMonth.isAfter(currentMonth) ||
+          paidUntilMonth.isAtSameMomentAs(currentMonth);
+
       return _currentFilter == PolicyFilter.paid ? isPaid : !isPaid;
     }).toList();
   }
+
   bool get isLoading => _isLoading;
   bool get isImporting => _isImporting;
   String? get error => _error;
@@ -91,7 +120,7 @@ class PolicyProvider with ChangeNotifier {
     _updateFilteredPolicies();
     notifyListeners();
   }
-  
+
   void setFilter(PolicyFilter filter) {
     _currentFilter = filter;
     notifyListeners();
@@ -149,19 +178,19 @@ class PolicyProvider with ChangeNotifier {
 
       final file = File(result.files.single.path!);
       _fileName = result.files.single.name;
-      
+
       final resultData = await _repository.importPoliciesFromFile(file);
-      
+
       // Update the state with the imported data
       _policies = resultData.policies;
       _agentName = resultData.agentName;
       _agentId = resultData.agentId;
       _fromDate = resultData.fromDate;
       _toDate = resultData.toDate;
-      
+
       _updateFilteredPolicies();
       notifyListeners();
-      
+
       return true;
     } catch (e) {
       _updateState(error: 'Failed to import policies: $e');
@@ -202,9 +231,11 @@ class PolicyProvider with ChangeNotifier {
 
     try {
       final result = await _repository.updatePolicy(updatedPolicy);
-      
+
       if (result != null) {
-        final index = _policies.indexWhere((p) => p.policyNumber == updatedPolicy.policyNumber);
+        final index = _policies.indexWhere(
+          (p) => p.policyNumber == updatedPolicy.policyNumber,
+        );
         if (index != -1) {
           _policies[index] = result;
           _updateFilteredPolicies();
@@ -216,7 +247,7 @@ class PolicyProvider with ChangeNotifier {
           return true;
         }
       }
-      
+
       _updateState(error: 'Failed to update policy: Policy not found');
       return false;
     } catch (e) {

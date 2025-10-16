@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
+import 'package:postal_deposit/features/policy/domain/entities/policy_entity.dart';
 import 'package:postal_deposit/features/policy/domain/entities/policy_filter.dart';
+import 'package:postal_deposit/features/policy/presentation/pages/add_policy_page.dart';
 
 import 'core/storage/hive_service.dart';
 import 'features/person/data/repositories/person_repository_impl.dart';
@@ -107,6 +109,29 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
+  Future<void> _navigateToAddPolicy(
+    BuildContext context,
+    PolicyProvider policyProvider,
+  ) async {
+    final result = await Navigator.push<PolicyEntity>(
+      context,
+      MaterialPageRoute(builder: (context) => const AddPolicyPage()),
+    );
+
+    if (result != null && context.mounted) {
+      // Add the new policy
+      await policyProvider.addPolicy(result);
+
+      // Show success message
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Policy added successfully!'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final policyProvider = context.watch<PolicyProvider>();
@@ -123,6 +148,11 @@ class _MyHomePageState extends State<MyHomePage> {
           ),
         ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.add, color: Colors.white, size: 28),
+            onPressed: () => _navigateToAddPolicy(context, policyProvider),
+            tooltip: 'Add New Policy',
+          ),
           if (policyProvider.hasPolicies)
             IconButton(
               icon: const Icon(Icons.filter_alt_outlined, color: Colors.white),
@@ -142,6 +172,11 @@ class _MyHomePageState extends State<MyHomePage> {
         ],
       ),
       body: _buildBody(context, policyProvider, personProvider),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => _navigateToAddPolicy(context, policyProvider),
+        backgroundColor: Theme.of(context).primaryColor,
+        child: const Icon(Icons.add, color: Colors.white, size: 28),
+      ),
     );
   }
 
