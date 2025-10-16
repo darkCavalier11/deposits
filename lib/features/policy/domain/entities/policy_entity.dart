@@ -1,3 +1,4 @@
+// ignore_for_file: public_member_api_docs, sort_constructors_first
 enum PremiumFrequency {
   monthly,
   quarterly,
@@ -43,6 +44,8 @@ class PolicyEntity {
     };
   }
 
+
+
   factory PolicyEntity.fromMap(Map<String, dynamic> map) {
     return PolicyEntity(
       policyNumber: map['policyNumber'] as String,
@@ -57,6 +60,30 @@ class PolicyEntity {
       paymentMode: map['paymentMode'] as String,
       issueDate: DateTime.parse(map['issueDate'] as String),
       insuredDateOfBirth: DateTime.parse(map['insuredDateOfBirth'] as String),
+    );
+  }
+
+  PolicyEntity copyWith({
+    String? policyNumber,
+    String? insured,
+    double? sumAssured,
+    double? premiumAmt,
+    PremiumFrequency? premiumFrequency,
+    String? productName,
+    String? paymentMode,
+    DateTime? issueDate,
+    DateTime? insuredDateOfBirth,
+  }) {
+    return PolicyEntity(
+      policyNumber: policyNumber ?? this.policyNumber,
+      insured: insured ?? this.insured,
+      sumAssured: sumAssured ?? this.sumAssured,
+      premiumAmt: premiumAmt ?? this.premiumAmt,
+      premiumFrequency: premiumFrequency ?? this.premiumFrequency,
+      productName: productName ?? this.productName,
+      paymentMode: paymentMode ?? this.paymentMode,
+      issueDate: issueDate ?? this.issueDate,
+      insuredDateOfBirth: insuredDateOfBirth ?? this.insuredDateOfBirth,
     );
   }
 }
