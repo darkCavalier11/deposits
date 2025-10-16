@@ -15,6 +15,7 @@ class PolicyCard extends StatefulWidget {
   final VoidCallback? onTap;
   final VoidCallback? onDelete;
   final Function(PolicyEntity)? onUpdate;
+  final Function(PolicyEntity, DateTime)? onMakePayment;
   final bool showDelete;
 
   const PolicyCard({
@@ -23,6 +24,7 @@ class PolicyCard extends StatefulWidget {
     this.onTap,
     this.onDelete,
     this.onUpdate,
+    this.onMakePayment,
     this.showDelete = true,
   });
 
@@ -59,6 +61,88 @@ class _PolicyCardState extends State<PolicyCard> {
     _nameController.dispose();
     _productController.dispose();
     super.dispose();
+  }
+
+  Future<void> _showMakePaymentDialog() async {
+    PremiumFrequency? selectedFrequency = widget.entry.premiumFrequency;
+    final now = DateTime.now();
+    DateTime? paidUntilDate;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Make Payment'),
+        content: StatefulBuilder(
+          builder: (context, setState) {
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Select payment frequency:'),
+                const SizedBox(height: 16),
+                DropdownButtonFormField<PremiumFrequency>(
+                  value: selectedFrequency,
+                  items: PremiumFrequency.values.map((frequency) {
+                    return DropdownMenuItem(
+                      value: frequency,
+                      child: Text(_formatPremiumFrequency(frequency)),
+                    );
+                  }).toList(),
+                  onChanged: (value) {
+                    if (value != null) {
+                      setState(() {
+                        selectedFrequency = value;
+                        // Calculate paid until date based on selected frequency
+                        paidUntilDate = _calculatePaidUntil(now, value);
+                      });
+                    }
+                  },
+                ),
+                const SizedBox(height: 16),
+                if (paidUntilDate != null)
+                  Text(
+                    'This payment will cover until: ${_formatDate(paidUntilDate!)}\n'
+                    'Amount: ${_formatCurrency(widget.entry.premiumAmt)}',
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+              ],
+            );
+          },
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('CANCEL'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('CONFIRM PAYMENT'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true &&
+        paidUntilDate != null &&
+        widget.onMakePayment != null) {
+      widget.onMakePayment!(widget.entry, paidUntilDate!);
+    }
+  }
+
+  DateTime _calculatePaidUntil(DateTime fromDate, PremiumFrequency frequency) {
+    switch (frequency) {
+      case PremiumFrequency.monthly:
+        return DateTime(fromDate.year, fromDate.month + 1, fromDate.day);
+      case PremiumFrequency.quarterly:
+        return DateTime(fromDate.year, fromDate.month + 3, fromDate.day);
+      case PremiumFrequency.halfYearly:
+        return DateTime(fromDate.year, fromDate.month + 6, fromDate.day);
+      case PremiumFrequency.annual:
+        return DateTime(fromDate.year + 1, fromDate.month, fromDate.day);
+      case PremiumFrequency.single:
+        // For single payment, set to a far future date (100 years)
+        return DateTime(fromDate.year + 100, fromDate.month, fromDate.day);
+    }
   }
 
   void _showEditDialog() {
@@ -162,7 +246,10 @@ class _PolicyCardState extends State<PolicyCard> {
     );
   }
 
-  String _formatDate(DateTime date) {
+  String _formatDate(DateTime date, {bool monthYearOnly = false}) {
+    if (monthYearOnly) {
+      return DateFormat('MMM yyyy').format(date);
+    }
     return DateFormat('dd MMM yyyy').format(date);
   }
 
@@ -316,8 +403,8 @@ class _PolicyCardState extends State<PolicyCard> {
                         ),
                       ),
 
-                      // View Details Button
-                      if (widget.onTap != null) _buildViewDetailsButton(theme),
+                      // Payment Button
+                      if (widget.onMakePayment != null) _buildPaymentButton(theme),
                     ],
                   ),
                 ],
@@ -411,18 +498,13 @@ class _PolicyCardState extends State<PolicyCard> {
   }
 
   Widget _buildStatusChip(ThemeData theme) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.primaryContainer,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Text(
-        'Active',
-        style: theme.textTheme.labelSmall?.copyWith(
-          color: theme.colorScheme.onPrimaryContainer,
-          fontWeight: FontWeight.w500,
-        ),
+    if (widget.entry.paidUntil == null) return const SizedBox.shrink();
+    
+    return Text(
+      'Paid until: ${_formatDate(widget.entry.paidUntil!, monthYearOnly: true)}',
+      style: theme.textTheme.bodySmall?.copyWith(
+        color: Colors.green[700],
+        fontWeight: FontWeight.w500,
       ),
     );
   }
@@ -431,8 +513,8 @@ class _PolicyCardState extends State<PolicyCard> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceVariant,
-        borderRadius: BorderRadius.circular(12),
+        color: theme.colorScheme.surfaceVariant.withOpacity(0.3),
+        borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -454,32 +536,14 @@ class _PolicyCardState extends State<PolicyCard> {
     );
   }
 
-  Widget _buildViewDetailsButton(ThemeData theme) {
-    return TextButton(
-      onPressed: null,
-      style: TextButton.styleFrom(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        minimumSize: Size.zero,
-        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            'View Details',
-            style: theme.textTheme.labelMedium?.copyWith(
-              color: theme.colorScheme.primary,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          const SizedBox(width: 4),
-          Icon(
-            Icons.arrow_forward_ios,
-            size: 12,
-            color: theme.colorScheme.primary,
-          ),
-        ],
-      ),
+  Widget _buildPaymentButton(ThemeData theme) {
+    if (widget.onMakePayment == null) return const SizedBox.shrink();
+    
+    return TextButton.icon(
+      onPressed: _showMakePaymentDialog,
+      icon: const Icon(Icons.payment_outlined, size: 16),
+      label: const Text('MAKE PAYMENT'),
+      style: TextButton.styleFrom(foregroundColor: Colors.green),
     );
   }
 

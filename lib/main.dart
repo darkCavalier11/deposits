@@ -268,6 +268,28 @@ class _MyHomePageState extends State<MyHomePage> {
                             );
                           }
                         },
+                        onMakePayment: (policy, paidUntil) async {
+                          final updatedPolicy = policy.copyWith(paidUntil: paidUntil);
+                          final success = await context
+                              .read<PolicyProvider>()
+                              .updatePolicy(updatedPolicy);
+                          
+                          if (success && context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Payment recorded successfully! Valid until ${_formatDate(paidUntil)}'),
+                                backgroundColor: Colors.green,
+                              ),
+                            );
+                          } else if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Failed to record payment'),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                          }
+                        },
                       );
                     },
                   ),

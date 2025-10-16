@@ -1,11 +1,5 @@
 // ignore_for_file: public_member_api_docs, sort_constructors_first
-enum PremiumFrequency {
-  monthly,
-  quarterly,
-  halfYearly,
-  annual,
-  single,
-}
+enum PremiumFrequency { monthly, quarterly, halfYearly, annual, single }
 
 class PolicyEntity {
   final String policyNumber;
@@ -17,6 +11,7 @@ class PolicyEntity {
   final String paymentMode;
   final DateTime issueDate;
   final DateTime insuredDateOfBirth;
+  final DateTime? paidUntil;
 
   const PolicyEntity({
     required this.policyNumber,
@@ -28,6 +23,7 @@ class PolicyEntity {
     required this.paymentMode,
     required this.issueDate,
     required this.insuredDateOfBirth,
+    this.paidUntil,
   });
 
   Map<String, dynamic> toMap() {
@@ -41,17 +37,16 @@ class PolicyEntity {
       'paymentMode': paymentMode,
       'issueDate': issueDate.toIso8601String(),
       'insuredDateOfBirth': insuredDateOfBirth.toIso8601String(),
+      'paidUntil': paidUntil?.toIso8601String(),
     };
   }
-
-
 
   factory PolicyEntity.fromMap(Map<String, dynamic> map) {
     return PolicyEntity(
       policyNumber: map['policyNumber'] as String,
       insured: map['insured'] as String,
-      sumAssured: (map['sumAssured'] as num).toDouble(),
-      premiumAmt: (map['premiumAmt'] as num).toDouble(),
+      sumAssured: map['sumAssured'] as double,
+      premiumAmt: map['premiumAmt'] as double,
       premiumFrequency: PremiumFrequency.values.firstWhere(
         (e) => e.toString() == map['premiumFrequency'],
         orElse: () => PremiumFrequency.monthly,
@@ -60,6 +55,9 @@ class PolicyEntity {
       paymentMode: map['paymentMode'] as String,
       issueDate: DateTime.parse(map['issueDate'] as String),
       insuredDateOfBirth: DateTime.parse(map['insuredDateOfBirth'] as String),
+      paidUntil: map['paidUntil'] != null
+          ? DateTime.parse(map['paidUntil'] as String)
+          : null,
     );
   }
 
@@ -73,6 +71,7 @@ class PolicyEntity {
     String? paymentMode,
     DateTime? issueDate,
     DateTime? insuredDateOfBirth,
+    DateTime? paidUntil,
   }) {
     return PolicyEntity(
       policyNumber: policyNumber ?? this.policyNumber,
@@ -84,6 +83,7 @@ class PolicyEntity {
       paymentMode: paymentMode ?? this.paymentMode,
       issueDate: issueDate ?? this.issueDate,
       insuredDateOfBirth: insuredDateOfBirth ?? this.insuredDateOfBirth,
+      paidUntil: paidUntil ?? this.paidUntil,
     );
   }
 }

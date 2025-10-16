@@ -181,6 +181,11 @@ class PolicyProvider with ChangeNotifier {
         if (index != -1) {
           _policies[index] = result;
           _updateFilteredPolicies();
+          notifyListeners();
+        }
+        if (index != -1) {
+          _policies[index] = result;
+          _updateFilteredPolicies();
           return true;
         }
       }
