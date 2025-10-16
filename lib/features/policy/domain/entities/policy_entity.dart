@@ -54,7 +54,7 @@ class PolicyEntity {
       premiumAmt: (map['premiumAmt'] as num).toDouble(),
       premiumFrequency: PremiumFrequency.values.firstWhere(
         (e) => e.toString() == map['premiumFrequency'],
-        orElse: () => PremiumFrequency.annual,
+        orElse: () => PremiumFrequency.monthly,
       ),
       productName: map['productName'] as String,
       paymentMode: map['paymentMode'] as String,

@@ -249,6 +249,25 @@ class _MyHomePageState extends State<MyHomePage> {
                             );
                           }
                         },
+                        onUpdate: (updatedPolicy) async {
+                          final success = await context
+                              .read<PolicyProvider>()
+                              .updatePolicy(updatedPolicy);
+                          if (success && context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Policy updated successfully'),
+                              ),
+                            );
+                          } else if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Failed to update policy'),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                          }
+                        },
                       );
                     },
                   ),

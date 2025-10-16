@@ -145,21 +145,50 @@ class PolicyProvider with ChangeNotifier {
   }
 
   /// Deletes a policy by its policy number
+  /// Returns true if the policy was deleted, false otherwise
   Future<bool> deletePolicy(String policyNumber) async {
     if (_isLoading) return false;
 
     _updateState(isLoading: true, error: null);
 
     try {
-      final success = await _repository.deletePolicy(policyNumber);
-      if (success) {
-        _policies.removeWhere((p) => p.policyNumber == policyNumber);
+      final wasDeleted = await _repository.deletePolicy(policyNumber);
+      if (wasDeleted) {
+        _policies.removeWhere((policy) => policy.policyNumber == policyNumber);
         _updateFilteredPolicies();
-        await _repository.savePolicies(_policies);
       }
-      return success;
+      return wasDeleted;
     } catch (e) {
       _updateState(error: 'Failed to delete policy: $e');
+      return false;
+    } finally {
+      _updateState(isLoading: false);
+    }
+  }
+
+  /// Updates an existing policy
+  /// Returns true if the policy was updated, false otherwise
+  Future<bool> updatePolicy(PolicyEntity updatedPolicy) async {
+    if (_isLoading) return false;
+
+    _updateState(isLoading: true, error: null);
+
+    try {
+      final result = await _repository.updatePolicy(updatedPolicy);
+      
+      if (result != null) {
+        final index = _policies.indexWhere((p) => p.policyNumber == updatedPolicy.policyNumber);
+        if (index != -1) {
+          _policies[index] = result;
+          _updateFilteredPolicies();
+          return true;
+        }
+      }
+      
+      _updateState(error: 'Failed to update policy: Policy not found');
+      return false;
+    } catch (e) {
+      _updateState(error: 'Failed to update policy: $e');
       return false;
     } finally {
       _updateState(isLoading: false);
@@ -171,7 +200,6 @@ class PolicyProvider with ChangeNotifier {
     if (_isLoading) return false;
 
     _updateState(isLoading: true, error: null);
-
     try {
       await _repository.clearPolicies();
       _policies = [];

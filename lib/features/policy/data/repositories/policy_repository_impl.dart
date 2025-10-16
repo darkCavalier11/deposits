@@ -81,28 +81,37 @@ class PolicyRepositoryImpl implements PolicyRepository {
       throw Exception('Failed to import policies from file: $e');
     }
   }
-
   @override
   Future<bool> deletePolicy(String policyNumber) async {
     try {
       final policies = await getPolicies();
       final initialCount = policies.length;
+      policies.removeWhere((policy) => policy.policyNumber == policyNumber);
       
-      // Remove the policy with the matching policy number
-      final updatedPolicies = policies.where(
-        (policy) => policy.policyNumber != policyNumber,
-      ).toList();
-      
-      // If no policy was removed, return false
-      if (updatedPolicies.length == initialCount) {
-        return false;
+      if (policies.length < initialCount) {
+        await savePolicies(policies);
+        return true;
       }
-      
-      // Save the updated list
-      await savePolicies(updatedPolicies);
-      return true;
+      return false;
     } catch (e) {
       throw Exception('Failed to delete policy: $e');
+    }
+  }
+
+  @override
+  Future<PolicyEntity?> updatePolicy(PolicyEntity policy) async {
+    try {
+      final policies = await getPolicies();
+      final index = policies.indexWhere((p) => p.policyNumber == policy.policyNumber);
+      
+      if (index != -1) {
+        policies[index] = policy;
+        await savePolicies(policies);
+        return policy;
+      }
+      return null;
+    } catch (e) {
+      throw Exception('Failed to update policy: $e');
     }
   }
 }

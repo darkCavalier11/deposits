@@ -28,4 +28,8 @@ abstract class PolicyRepository {
   /// Delete a policy by its policy number
   /// Returns true if the policy was deleted, false if not found
   Future<bool> deletePolicy(String policyNumber);
+
+  /// Update an existing policy
+  /// Returns the updated policy if successful, null if the policy was not found
+  Future<PolicyEntity?> updatePolicy(PolicyEntity policy);
 }

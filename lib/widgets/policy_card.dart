@@ -1,17 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:postal_deposit/features/policy/domain/entities/policy_entity.dart';
 import 'package:intl/intl.dart';
+import 'package:flutter/services.dart';
 
+// Constants for styling
 const _kCardPadding = 16.0;
 const _kCardElevation = 2.0;
 const _kCardRadius = 12.0;
 const _kElementSpacing = 8.0;
 const _kSectionSpacing = 16.0;
 
-class PolicyCard extends StatelessWidget {
+class PolicyCard extends StatefulWidget {
   final PolicyEntity entry;
   final VoidCallback? onTap;
   final VoidCallback? onDelete;
+  final Function(PolicyEntity)? onUpdate;
   final bool showDelete;
 
   const PolicyCard({
@@ -19,8 +22,145 @@ class PolicyCard extends StatelessWidget {
     required this.entry,
     this.onTap,
     this.onDelete,
+    this.onUpdate,
     this.showDelete = true,
   });
+
+  @override
+  State<PolicyCard> createState() => _PolicyCardState();
+}
+
+class _PolicyCardState extends State<PolicyCard> {
+  late final TextEditingController _nameController;
+  late final TextEditingController _productController;
+  late PremiumFrequency _selectedFrequency;
+  final _formKey = GlobalKey<FormState>();
+
+  @override
+  void initState() {
+    super.initState();
+    _nameController = TextEditingController(text: widget.entry.insured);
+    _productController = TextEditingController(text: widget.entry.productName);
+    _selectedFrequency = widget.entry.premiumFrequency;
+  }
+
+  @override
+  void didUpdateWidget(covariant PolicyCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.entry != widget.entry) {
+      _nameController.text = widget.entry.insured;
+      _productController.text = widget.entry.productName;
+      _selectedFrequency = widget.entry.premiumFrequency;
+    }
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _productController.dispose();
+    super.dispose();
+  }
+
+  void _showEditDialog() {
+    // Update controllers with current values
+    _nameController.text = widget.entry.insured;
+    _productController.text = widget.entry.productName;
+    _selectedFrequency = widget.entry.premiumFrequency;
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Edit Policy'),
+        content: SingleChildScrollView(
+          child: Form(
+            key: _formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextFormField(
+                  controller: _nameController,
+                  decoration: const InputDecoration(
+                    labelText: 'Policy Holder Name',
+                    border: OutlineInputBorder(),
+                  ),
+                  validator: (value) => value?.trim().isEmpty ?? true
+                      ? 'Name cannot be empty'
+                      : null,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.deny(
+                      RegExp(r'\s{2,}'),
+                    ), // Prevent multiple spaces
+                  ],
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _productController,
+                  decoration: const InputDecoration(
+                    labelText: 'Product Name',
+                    border: OutlineInputBorder(),
+                  ),
+                  validator: (value) => value?.trim().isEmpty ?? true
+                      ? 'Product name cannot be empty'
+                      : null,
+                ),
+                const SizedBox(height: 16),
+                DropdownButtonFormField<PremiumFrequency>(
+                  value: _selectedFrequency,
+                  decoration: const InputDecoration(
+                    labelText: 'Premium Frequency',
+                    border: OutlineInputBorder(),
+                  ),
+                  items: PremiumFrequency.values.map((frequency) {
+                    return DropdownMenuItem(
+                      value: frequency,
+                      child: Text(
+                        _formatPremiumFrequency(frequency),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    );
+                  }).toList(),
+                  onChanged: (value) {
+                    if (value != null) {
+                      setState(() => _selectedFrequency = value);
+                    }
+                  },
+                  validator: (value) =>
+                      value == null ? 'Please select a frequency' : null,
+                ),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('CANCEL'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              if (_formKey.currentState?.validate() ?? false) {
+                final updatedPolicy = widget.entry.copyWith(
+                  insured: _nameController.text.trim(),
+                  productName: _productController.text.trim(),
+                  premiumFrequency: _selectedFrequency,
+                );
+                widget.onUpdate?.call(updatedPolicy);
+                if (mounted) {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Policy updated successfully'),
+                    ),
+                  );
+                }
+              }
+            },
+            child: const Text('SAVE'),
+          ),
+        ],
+      ),
+    );
+  }
 
   String _formatDate(DateTime date) {
     return DateFormat('dd MMM yyyy').format(date);
@@ -42,18 +182,17 @@ class PolicyCard extends StatelessWidget {
         return 'Annual';
       case PremiumFrequency.single:
         return 'Single Premium';
-      default:
-        return frequency.toString().split('.').last;
+      // Removed default case as all enum values are covered
     }
   }
 
-  Future<void> _showDeleteConfirmation(BuildContext context) async {
+  Future<void> _showDeleteConfirmation() async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Delete Policy'),
         content: Text(
-          'Are you sure you want to delete policy #${entry.policyNumber}?',
+          'Are you sure you want to delete policy #${widget.entry.policyNumber}?',
         ),
         actions: [
           TextButton(
@@ -68,8 +207,8 @@ class PolicyCard extends StatelessWidget {
       ),
     );
 
-    if (confirmed == true && onDelete != null) {
-      onDelete!();
+    if (confirmed == true && widget.onDelete != null) {
+      widget.onDelete!();
     }
   }
 
@@ -89,7 +228,9 @@ class PolicyCard extends StatelessWidget {
       child: Stack(
         children: [
           InkWell(
-            onTap: onTap,
+            onTap: widget.onTap != null
+                ? widget.onTap
+                : () {}, // Fix undefined name
             borderRadius: BorderRadius.circular(_kCardRadius),
             child: Container(
               padding: const EdgeInsets.all(_kCardPadding),
@@ -101,7 +242,7 @@ class PolicyCard extends StatelessWidget {
                     children: [
                       Expanded(
                         child: Text(
-                          'Policy #${entry.policyNumber}',
+                          'Policy #${widget.entry.policyNumber}',
                           style: textTheme.titleMedium?.copyWith(
                             fontWeight: FontWeight.w600,
                             color: colorScheme.primary,
@@ -110,17 +251,40 @@ class PolicyCard extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      if (showDelete && onDelete != null)
-                        IconButton(
-                          icon: Icon(
-                            Icons.delete_outline,
-                            size: 20,
-                            color: colorScheme.error,
-                          ),
-                          onPressed: () => _showDeleteConfirmation(context),
-                          padding: EdgeInsets.zero,
-                          constraints: const BoxConstraints(),
-                          tooltip: 'Delete policy',
+                      if (widget.showDelete &&
+                          (widget.onDelete != null || widget.onUpdate != null))
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (widget.onUpdate != null)
+                              IconButton(
+                                icon: Icon(
+                                  Icons.edit_outlined,
+                                  size: 20,
+                                  color: colorScheme.primary,
+                                ),
+                                onPressed: _showEditDialog,
+                                padding: EdgeInsets.zero,
+                                constraints: const BoxConstraints(),
+                                tooltip: 'Edit policy',
+                                style: IconButton.styleFrom(
+                                  tapTargetSize:
+                                      MaterialTapTargetSize.shrinkWrap,
+                                ),
+                              ),
+                            if (widget.onDelete != null)
+                              IconButton(
+                                icon: Icon(
+                                  Icons.delete_outline,
+                                  size: 20,
+                                  color: colorScheme.error,
+                                ),
+                                onPressed: _showDeleteConfirmation,
+                                padding: EdgeInsets.zero,
+                                constraints: const BoxConstraints(),
+                                tooltip: 'Delete policy',
+                              ),
+                          ],
                         ),
                     ],
                   ),
@@ -153,7 +317,7 @@ class PolicyCard extends StatelessWidget {
                       ),
 
                       // View Details Button
-                      if (onTap != null) _buildViewDetailsButton(theme),
+                      if (widget.onTap != null) _buildViewDetailsButton(theme),
                     ],
                   ),
                 ],
@@ -180,14 +344,14 @@ class PolicyCard extends StatelessWidget {
           _buildInfoRow(
             icon: Icons.person_outline,
             label: 'Policy Holder',
-            value: entry.insured,
+            value: widget.entry.insured,
             theme: theme,
           ),
           const SizedBox(height: _kElementSpacing),
           _buildInfoRow(
             icon: Icons.description_outlined,
             label: 'Product',
-            value: entry.productName,
+            value: widget.entry.productName,
             theme: theme,
           ),
           const SizedBox(height: _kElementSpacing),
@@ -197,7 +361,7 @@ class PolicyCard extends StatelessWidget {
                 child: _buildInfoRow(
                   icon: Icons.calendar_month_outlined,
                   label: 'Issued On',
-                  value: _formatDate(entry.issueDate),
+                  value: _formatDate(widget.entry.issueDate),
                   theme: theme,
                 ),
               ),
@@ -206,7 +370,7 @@ class PolicyCard extends StatelessWidget {
                 child: _buildInfoRow(
                   icon: Icons.cake_outlined,
                   label: 'Date of Birth',
-                  value: _formatDate(entry.insuredDateOfBirth),
+                  value: _formatDate(widget.entry.insuredDateOfBirth),
                   theme: theme,
                 ),
               ),
@@ -226,7 +390,7 @@ class PolicyCard extends StatelessWidget {
         Expanded(
           child: _buildFinancialItem(
             title: 'Sum Assured',
-            value: _formatCurrency(entry.sumAssured),
+            value: _formatCurrency(widget.entry.sumAssured),
             icon: Icons.account_balance_wallet_outlined,
             color: colorScheme.primary,
             theme: theme,
@@ -236,7 +400,7 @@ class PolicyCard extends StatelessWidget {
         Expanded(
           child: _buildFinancialItem(
             title: 'Premium',
-            value: _formatCurrency(entry.premiumAmt),
+            value: _formatCurrency(widget.entry.premiumAmt),
             icon: Icons.payments_outlined,
             color: colorScheme.secondary,
             theme: theme,
@@ -280,7 +444,7 @@ class PolicyCard extends StatelessWidget {
           ),
           const SizedBox(width: 4),
           Text(
-            _formatPremiumFrequency(entry.premiumFrequency),
+            _formatPremiumFrequency(widget.entry.premiumFrequency),
             style: theme.textTheme.labelSmall?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
             ),
@@ -292,7 +456,7 @@ class PolicyCard extends StatelessWidget {
 
   Widget _buildViewDetailsButton(ThemeData theme) {
     return TextButton(
-      onPressed: onTap,
+      onPressed: null,
       style: TextButton.styleFrom(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         minimumSize: Size.zero,
